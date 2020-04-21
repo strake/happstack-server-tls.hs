@@ -8,15 +8,12 @@ import Control.Exception.Extensible               as E
 import Control.Monad                              (forever, when)
 import Data.Time                                  (UTCTime)
 import GHC.IO.Exception                           (IOErrorType(..))
-import Happstack.Server.Internal.Listen           (listenOn)
 import Happstack.Server.Internal.Handler          (request)
 import Happstack.Server.Internal.Socket           (acceptLite)
 import Happstack.Server.Internal.TimeoutManager   (cancel, initialize, register)
 import Happstack.Server.Internal.TimeoutSocketTLS as TSS
 import Happstack.Server.Internal.Types            (Request, Response)
 import Network.Socket                             (HostName, PortNumber, Socket, close, socketPort)
-import Prelude                                    hiding (catch)
-import           OpenSSL                          (withOpenSSL)
 import           OpenSSL.Session                  (SSL, SSLContext)
 import qualified OpenSSL.Session                  as SSL
 import Happstack.Server.Types                     (LogAccess, logMAccess)
@@ -94,21 +91,6 @@ acceptTLS sck ctx =
           ssl <- SSL.connection ctx sck
           SSL.accept ssl
           return ssl
-
--- | https:// 'Request'/'Response' loop
---
--- This function initializes SSL, and starts accepting and handling
--- 'Request's and sending 'Respone's.
---
--- Each 'Request' is processed in a separate thread.
-listenTLS :: TLSConf                  -- ^ tls configuration
-          -> (Request -> IO Response) -- ^ request handler
-          -> IO ()
-listenTLS tlsConf hand =
-    do withOpenSSL $ return ()
-       tlsSocket <- listenOn (tlsPort tlsConf)
-       https     <- httpsOnSocket (tlsCert tlsConf) (tlsKey tlsConf) (tlsCA tlsConf) tlsSocket
-       listenTLS' (tlsTimeout tlsConf) (tlsLogAccess tlsConf) https hand
 
 -- | low-level https:// 'Request'/'Response' loop
 --
